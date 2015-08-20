@@ -1,0 +1,32 @@
+{
+  "name": "sector",
+  "version": "1.0.0",
+  "description": "creating nested 2d rectangular regions",
+  "main": "Sector.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha tests/node/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bingomanatee/sector.git"
+  },
+  "keywords": [
+    "2d",
+    "maps"
+  ],
+  "author": "David Edelhart",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bingomanatee/sector/issues"
+  },
+  "homepage": "https://github.com/bingomanatee/sector#readme",
+  "dependencies": {
+    "canvas": "^1.2.7"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0"
+  }
+}
