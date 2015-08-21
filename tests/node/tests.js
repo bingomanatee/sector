@@ -91,6 +91,12 @@ describe('Sector', function () {
             expect(ijs).to.eql([0, 0, 0, 1, 0, 2, 1, 0, 1, 1, 1, 2, 2, 0, 2, 1, 2, 2]);
         });
 
+        it('should accept array values for divide', function () {
+
+            var p = new Sector({span: 100});
+            p.divide([4, 2])
+
+        })
     });
 
     describe('#offset', function () {
@@ -167,6 +173,49 @@ describe('Sector', function () {
             expect(c1111.offset().i).to.eql(37.5);
             expect(c1111.offset().j).to.eql(37.5);
         })
+
+    });
+
+    describe('#leafDivide', function () {
+
+        var p;
+        beforeEach(function () {
+            p = new Sector();
+
+        })
+
+        it('should be able to return value at coordinates', function () {
+            p.leafDivide(3, [1, 2, 4, 8, 16, 32, 64, 128, 256]);
+
+            expect(p.childAt(0, 0).content).to.eql(1);
+            expect(p.childAt(2, 2).content).to.eql(256);
+            expect(p.childAt(0,0).isRegistered()).to.be.false;
+        });
+
+        it('should be able to functionally seed leaves', function () {
+            p.leafDivide(3, function (i, j, size) {
+                var index = i * size + j;
+                return Math.pow(2, index);
+            });
+
+            expect(p.childAt(0, 0).content).to.eql(1);
+            expect(p.childAt(2, 2).content).to.eql(256);
+            expect(p.childAt(0,0).isRegistered()).to.be.false;
+        });
+
+        it('should be able to retrieve an array of temporary children', function(){
+
+            p.leafDivide(3, function (i, j, size) {
+                var index = i * size + j;
+                return Math.pow(2, index);
+            });
+
+            var children = p.children();
+            expect(children[0].content).to.eql(1);
+            expect(children.pop().content).to.eql(256);
+            expect(children.pop().isRegistered()).to.be.false;
+
+        });
 
     });
 

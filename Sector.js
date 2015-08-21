@@ -23,6 +23,12 @@
      *
      * The span of all other tiles is a fractional calculation of its parents' span.
      *
+     * ### Leaf Children
+     *
+     * If a sector's children are not intended to have children of their own,
+     * to reduce object proliferation, their content can be stored in the parent as a 1d array of values.
+     * If this is true, then the childAt and children returns a temporary sector based on this content.
+     *
      * @constructor
      */
 
@@ -32,6 +38,14 @@
         }
         if (!parent) {
             parent = null;
+        }
+        if (params.leafSize && params.leafContent) {
+            this.leaves = {
+                size: params.leafSize,
+                content: params.leafContent
+            }
+        } else {
+            this.leaves = false;
         }
 
         if (arguments.length < 2 || parent === null) {
@@ -138,6 +152,7 @@
          */
         divide: function (size, returnChildren) {
             var sizes = null;
+            this.leaves = null;
             this.lastDivSize = size = Math.floor(size);
             if (returnChildren) {
                 var children = [];
@@ -179,11 +194,48 @@
             }
         },
 
+        /**
+         * this method creates "virtual children"
+         * that are represented by an array of data
+         * that can be iterated through, as opposed to
+         * individual sectors.
+         * @param size
+         * @param content
+         */
+        leafDivide: function (size, content) {
+            if (typeof content === 'function') {
+                content = map2d(size, content);
+            }
+            this.leaves = {
+                size: size, content: content
+            };
+            this.lastSize = size;
+        },
+
         children: function () {
+            if (this.leaves) {
+                var out = [];
+                for (var i = 0; i < this.leaves.size; ++i) {
+                    for (var j = 0; j < this.leaves.size; ++j) {
+                        out.push(this.childAt(i, j));
+                    }
+                }
+                return out;
+            }
             return Sector.$children(this.id);
         },
 
         childAt: function (i, j, size) {
+            if (this.leaves && arguments.length > 2 && size != this.leaves.size) {
+                console.log('warning: bad size reference for leaved sector');
+                return null;
+            }
+
+            if (this.leaves) {
+                var content = this.leaves.content[i * this.leaves.size + j];
+                return new Sector({i: i, j: j, size: this.leaves.size, content: content, register: false}, this);
+            }
+
             if (arguments.length < 3) {
                 size = this.lastDivSize;
             }
@@ -278,5 +330,15 @@
     };
 
     root.Sector = Sector;
+
+    function map2d(size, fn) {
+        var out = [];
+        for (var i = 0; i < size; ++i) {
+            for (var j = 0; j < size; ++j) {
+                out.push(fn(i, j, size));
+            }
+        }
+        return out;
+    }
 
 }(typeof exports === 'undefined' ? this : exports));
