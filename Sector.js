@@ -38,6 +38,9 @@
         }
         if (!parent) {
             parent = null;
+            if (typeof params === 'number'){
+                params = {span: params};
+            }
         }
         if (params.leafSize && params.leafContent) {
             this.leaves = {
@@ -147,13 +150,20 @@
          * creates divisions of this sector; creates/finds size x size Sectors.
          *
          * @param size {int} 2 or greater
+         * @param populate {function} a function to set content for each child.
          * @param returnChildren {boolean}
          * @returns {Array} -- only returns array if returnChildren is true; returns them in i, j order.
          */
-        divide: function (size, returnChildren) {
+        divide: function (size, populate, returnChildren) {
             var sizes = null;
             this.leaves = null;
             this.lastDivSize = size = Math.floor(size);
+
+            if (!(typeof populate === 'function')){
+                returnChildren = populate;
+                populate = null;
+            }
+
             if (returnChildren) {
                 var children = [];
             }
@@ -168,8 +178,12 @@
             }
             for (var i = 0; i < size; ++i) {
                 for (var j = 0; j < size; ++j) {
+                    var content = populate ? populate(i, j, this) : null;
                     var existingChild = Sector.$$hasChild(this.id, size, i, j);
                     if (existingChild) {
+                        if (populate){
+                            existingChild.content = content;
+                        }
                         if (returnChildren) {
                             children.push(existingChild);
                         }
@@ -177,7 +191,7 @@
                             existingChild.divide(sizes);
                         }
                     } else {
-                        var newChild = new Sector({size: size, i: i, j: j}, this);
+                        var newChild = new Sector({size: size, i: i, j: j, content: content}, this);
                         if (sizes && sizes.length) {
                             console.log('array recursing divide: ', newChild, sizes);
                             newChild.divide(sizes);
