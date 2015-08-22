@@ -54,10 +54,14 @@
         if (arguments.length < 2 || parent === null) {
             this.parentId = null;
             this.isRoot = true;
+            this.depth = 0;
         } else {
             this.isRoot = false;
             this.parentId = parent ? parent.id ? parent.id : null : null;
+            this.depth = parent.depth + 1;
         }
+
+        this.isLeaf = true;
 
         this.store = params.store || null;
         if (this.store) {
@@ -167,6 +171,7 @@
             }
             var sizes = null;
             this.leaves = null;
+            this.isLeaf = false;
 
             if (!(typeof populate === 'function')) {
                 returnChildren = populate;
@@ -205,7 +210,7 @@
                     } else {
                         var newChild = new Sector({size: size, i: i, j: j, content: content, store: this.store}, this);
                         if (sizes && sizes.length) {
-                            newChild.divide(sizes);
+                            newChild.divide(sizes, populate);
                         }
                         if (returnChildren) {
                             children.push(newChild);

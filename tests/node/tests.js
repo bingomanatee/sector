@@ -260,6 +260,16 @@ describe('Sector', function () {
 
     });
 
+});
+
+describe('SectorCanvas', function () {
+
+    var store;
+
+    before(function () {
+        store = new SectorStore();
+    });
+
     describe('visualizing sectors', function () {
         var Canvas = require('canvas')
             , Image = Canvas.Image;
@@ -304,9 +314,7 @@ describe('Sector', function () {
             fs.writeFile(__dirname + '/testSector.png', canvas.toBuffer(), done);
         });
     })
-
-
-});
+})
 
 describe('SectorStore', function () {
 

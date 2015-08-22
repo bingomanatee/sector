@@ -1,7 +1,9 @@
 (function (root) {
-
+    var lodash;
     if (!(typeof exports === 'undefined')) {
-        var _ = require('lodash');
+        lodash = require('lodash');
+    } else {
+        lodash = _;
     }
     function SectorStore(globalId) {
         this._list = [];
@@ -56,7 +58,7 @@
 
             this._index[sector.id] = sector;
 
-            _.remove(sector, this._list);
+            lodash.remove(sector, this._list);
             this._list.push(sector);
 
             sector.store = this;

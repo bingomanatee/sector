@@ -6,20 +6,12 @@
   <title>Mocha Tests</title>
   <link rel="stylesheet" href="mocha.css" />
   <script src="lib/jquery-1.11.2.js"></script>
-  <script src="test-lib/chai.js"></script>
-  <script src="test-lib/mocha.js"></script>
-  <script> mocha.setup('bdd');</script>
   <script src="bower_components/lodash/lodash.min.js"></script>
   <script src="../../Store.js"></script>
   <script src="../../Sector.js"></script>
-  <script src="tests.js"></script>
-  <script>
-    window.onload = function() {
-         mocha.run()
-    };
-  </script>
  </head>
 <body>
-  <div id="mocha"></div>
+  <div id="terrain"></div>
+  <script src="terrain.js" defer="defer"></script>
 </body>
 </html>
