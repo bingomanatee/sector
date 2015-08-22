@@ -86,6 +86,13 @@
 
     Sector.prototype = {
 
+        root: function () {
+            if (this.isRoot) {
+                return this;
+            }
+            return this.parent().root();
+        },
+
         canvasRect: function (ctx, strokeColor, fillColor, lineWidth) {
             if (typeof strokeColor === 'function') {
                 strokeColor = strokeColor(this);
@@ -95,7 +102,7 @@
             }
             ctx.save();
 
-          //  console.log('drdawing rect at ', this.offset(), this.getSpan(), strokeColor, fillColor);
+            //  console.log('drdawing rect at ', this.offset(), this.getSpan(), strokeColor, fillColor);
 
             ctx.strokeStyle = strokeColor;
             ctx.fillStyle = fillColor;
@@ -121,7 +128,7 @@
             return this.isRoot ? this.span : this.parent().getSpan() / this.size;
         },
 
-        toJson: function(){
+        toJson: function () {
             return {
                 id: this.id,
                 parentId: this.parentId,
@@ -157,6 +164,28 @@
             return this.store.get(this.parentId, cb);
         },
 
+
+        childMatrix: function(twoD, size){
+            var out = [];
+
+            var children = this.children(size);
+            if (twoD){
+                _.each(children, function(child){
+                   if (!out[child.i]){
+                       out[child.i] = [];
+                   }
+                    out[child.i][child.j] = child;
+                });
+            } else {
+                _.each(children, function(child){
+                    var index = child.i * child.size + child.j;
+                    out[index] = child;
+                });
+            }
+
+            return out;
+        },
+
         /**
          * creates divisions of this sector; creates/finds size x size Sectors.
          *
@@ -182,10 +211,10 @@
                 var children = [];
             }
 
-          //  console.log('size:', size);
+            //  console.log('size:', size);
             if (Array.isArray(size)) {
                 sizes = size.slice(1);
-              //  console.log('saving recursed array: ', sizes);
+                //  console.log('saving recursed array: ', sizes);
                 size = size[0];
             }
             if (size < 2) {
@@ -252,7 +281,7 @@
                 }
                 return out;
             }
-            if (!this.store){
+            if (!this.store) {
                 throw new Error('cannot get children without a store');
             }
             return this.store.children(this.id, size);
@@ -277,7 +306,7 @@
             }
             return this.store.childAt(this.id, size, i, j);
         }
-    }
+    };
 
     root.Sector = Sector;
 

@@ -1,0 +1,6 @@
+.cell {
+    border: 1px solid grey;
+    background-color: white;
+    position: absolute;
+    white-space: nowrap;
+}

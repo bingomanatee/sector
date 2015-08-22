@@ -131,8 +131,19 @@
             } else {
                 return out;
             }
+        },
+
+        leaves: function(){
+            return _.filter(this._list, 'isLeaf');
+        },
+
+        each: function(fn, order){
+            var l = _(this._list);
+            if (order) l.sortBy(order);
+
+            _.each(l.value(), fn);
         }
-    }
+    };
 
     root.SectorStore = SectorStore;
 
