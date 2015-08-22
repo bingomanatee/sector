@@ -86,21 +86,27 @@ describe('Sector', function () {
                 ijs.push(children[i].i);
                 ijs.push(children[i].j);
             }
-            expect(ijs).to.eql([0,0,0,1,0,2,1,0,1,1,1,2,2,0,2,1,2,2]);
+            expect(ijs).to.eql([0, 0, 0, 1, 0, 2, 1, 0, 1, 1, 1, 2, 2, 0, 2, 1, 2, 2]);
         });
 
+        it('should accept array values for divide', function () {
+
+            var p = new Sector({span: 100});
+            p.divide([4, 2])
+
+        })
     });
 
-    describe('#offset', function(){
+    describe('#offset', function () {
 
-        it('should be 0, 0 for the root', function(){
+        it('should be 0, 0 for the root', function () {
             var s = new Sector();
 
             expect(s.offset().i).to.eql(0);
             expect(s.offset().j).to.eql(0);
         });
 
-        it('should be quarters for quartered children', function(){
+        it('should be quarters for quartered children', function () {
             var p = new Sector();
 
             var children = p.divide(4, true);
@@ -124,7 +130,7 @@ describe('Sector', function () {
             expect(last.offset().j).to.eql(0.75);
         });
 
-        it('should calculate based on larger span', function(){
+        it('should calculate based on larger span', function () {
             var p = new Sector({span: 100});
 
             var children = p.divide(4, true);
@@ -148,7 +154,7 @@ describe('Sector', function () {
             expect(last.offset().j).to.eql(75);
         });
 
-        it('should calculate stage 2 children', function(){
+        it('should calculate stage 2 children', function () {
             var p = new Sector({span: 100});
 
             p.divide(4);
@@ -166,6 +172,49 @@ describe('Sector', function () {
             expect(c1111.offset().j).to.eql(37.5);
         })
 
-    })
+    });
+
+    describe('#leafDivide', function () {
+
+        var p;
+        beforeEach(function () {
+            p = new Sector();
+
+        })
+
+        it('should be able to return value at coordinates', function () {
+            p.leafDivide(3, [1, 2, 4, 8, 16, 32, 64, 128, 256]);
+
+            expect(p.childAt(0, 0).content).to.eql(1);
+            expect(p.childAt(2, 2).content).to.eql(256);
+            expect(p.childAt(0,0).isRegistered()).to.be.false;
+        });
+
+        it('should be able to functionally seed leaves', function () {
+            p.leafDivide(3, function (i, j, size) {
+                var index = i * size + j;
+                return Math.pow(2, index);
+            });
+
+            expect(p.childAt(0, 0).content).to.eql(1);
+            expect(p.childAt(2, 2).content).to.eql(256);
+            expect(p.childAt(0,0).isRegistered()).to.be.false;
+        });
+
+        it('should be able to retrieve an array of temporary children', function(){
+
+            p.leafDivide(3, function (i, j, size) {
+                var index = i * size + j;
+                return Math.pow(2, index);
+            });
+
+            var children = p.children();
+            expect(children[0].content).to.eql(1);
+            expect(children.pop().content).to.eql(256);
+            expect(children.pop().isRegistered()).to.be.false;
+
+        });
+
+    });
 
 });

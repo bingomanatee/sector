@@ -38,7 +38,7 @@
         }
         if (!parent) {
             parent = null;
-            if (typeof params === 'number'){
+            if (typeof params === 'number') {
                 params = {span: params};
             }
         }
@@ -59,7 +59,12 @@
             this.parentId = parent ? parent.id ? parent.id : null : null;
         }
 
-        this.id = params.id || ++Sector.$$ID;
+        this.store = params.store || null;
+        if (this.store) {
+            this.store.put(this);
+            //@TODO: manage redundant slice
+        }
+
         this.size = params.size || 1;
         this.i = Math.floor(params.i) || 0;
         this.j = Math.floor(params.j) || 0;
@@ -68,21 +73,11 @@
         } else if (!parent) {
             this.span = 1;
         }
-
         this.content = params.content || null;
 
         if (this.i >= this.size || this.j >= this.size || this.i < 0 || this.j < 0) {
             throw new Error('invalid sizes: ', this);
         }
-
-        if (!this.isRoot && Sector.$$hasChild(this.parentId, this.size, this.i, this.j)) {
-            throw new Error('redundant slice', this);
-        }
-
-        if (!params.hasOwnProperty('register') || params.register) {
-            Sector.$$register(this);
-        }
-
     }
 
     Sector.prototype = {
@@ -95,6 +90,8 @@
                 fillColor = fillColor(this);
             }
             ctx.save();
+
+          //  console.log('drdawing rect at ', this.offset(), this.getSpan(), strokeColor, fillColor);
 
             ctx.strokeStyle = strokeColor;
             ctx.fillStyle = fillColor;
@@ -110,15 +107,25 @@
         },
 
         isRegistered: function () {
-            return Sector.has(this.id);
-        },
-
-        register: function () {
-            Sector.$$register(this);
+            if (!this.store) {
+                return false;
+            }
+            return this.store.has(this.id);
         },
 
         getSpan: function () {
             return this.isRoot ? this.span : this.parent().getSpan() / this.size;
+        },
+
+        toJson: function(){
+            return {
+                id: this.id,
+                parentId: this.parentId,
+                i: this.i,
+                j: this.j,
+                span: this.getSpan(),
+                size: this.size
+            };
         },
 
         offset: function () {
@@ -139,11 +146,11 @@
             }
         },
 
-        parent: function () {
-            if (!this.parentId) {
+        parent: function (cb) {
+            if (!this.parentId || !this.store) {
                 return null;
             }
-            return Sector.get(this.parentId);
+            return this.store.get(this.parentId, cb);
         },
 
         /**
@@ -155,11 +162,13 @@
          * @returns {Array} -- only returns array if returnChildren is true; returns them in i, j order.
          */
         divide: function (size, populate, returnChildren) {
+            if (!this.store) {
+                throw new Error('cannot divide sectors without a store');
+            }
             var sizes = null;
             this.leaves = null;
-            this.lastDivSize = size = Math.floor(size);
 
-            if (!(typeof populate === 'function')){
+            if (!(typeof populate === 'function')) {
                 returnChildren = populate;
                 populate = null;
             }
@@ -168,20 +177,23 @@
                 var children = [];
             }
 
+          //  console.log('size:', size);
             if (Array.isArray(size)) {
                 sizes = size.slice(1);
-                console.log('saving recursed array: ', sizes);
+              //  console.log('saving recursed array: ', sizes);
                 size = size[0];
             }
             if (size < 2) {
                 throw new Error('must divide by at least 2');
             }
+            this.lastDivSize = size = Math.floor(size);
+
             for (var i = 0; i < size; ++i) {
                 for (var j = 0; j < size; ++j) {
                     var content = populate ? populate(i, j, this) : null;
-                    var existingChild = Sector.$$hasChild(this.id, size, i, j);
+                    var existingChild = this.store.childAt(this.id, size, i, j);
                     if (existingChild) {
-                        if (populate){
+                        if (populate) {
                             existingChild.content = content;
                         }
                         if (returnChildren) {
@@ -191,9 +203,8 @@
                             existingChild.divide(sizes);
                         }
                     } else {
-                        var newChild = new Sector({size: size, i: i, j: j, content: content}, this);
+                        var newChild = new Sector({size: size, i: i, j: j, content: content, store: this.store}, this);
                         if (sizes && sizes.length) {
-                            console.log('array recursing divide: ', newChild, sizes);
                             newChild.divide(sizes);
                         }
                         if (returnChildren) {
@@ -226,7 +237,7 @@
             this.lastSize = size;
         },
 
-        children: function () {
+        children: function (size) {
             if (this.leaves) {
                 var out = [];
                 for (var i = 0; i < this.leaves.size; ++i) {
@@ -236,10 +247,16 @@
                 }
                 return out;
             }
-            return Sector.$children(this.id);
+            if (!this.store){
+                throw new Error('cannot get children without a store');
+            }
+            return this.store.children(this.id, size);
         },
 
         childAt: function (i, j, size) {
+            if (!this.store) {
+                throw new Error('cannot get childAt without a store');
+            }
             if (this.leaves && arguments.length > 2 && size != this.leaves.size) {
                 console.log('warning: bad size reference for leaved sector');
                 return null;
@@ -253,95 +270,9 @@
             if (arguments.length < 3) {
                 size = this.lastDivSize;
             }
-            return Sector.$childAt(this.id, size, i, j);
+            return this.store.childAt(this.id, size, i, j);
         }
-    },
-
-        Sector.$$ID = 0;
-
-    Sector.$$clean = function (resetID) {
-        Sector.$$index = {};
-        Sector.$$list = [];
-        if (resetID) {
-            Sector.$$ID = 0;
-        }
-    };
-
-    Sector.$children = function (pID) {
-        var out = [];
-
-        for (var i = 0; i < Sector.$$list.length; ++i) {
-            var c = Sector.$$list[i];
-            if (c.parentId == pID) {
-                out.push(c);
-            }
-        }
-        return out;
-    };
-
-    Sector.$childAt = function (pID, size, i, j) {
-        if (i < 0 || j < 0 || i >= size || j >= size) {
-            throw new Error('bad query');
-        }
-
-        for (var ii = 0; ii < Sector.$$list.length; ++ii) {
-            var s = Sector.$$list[ii];
-            if (s.parentId === pID && s.size === size && s.i === i && s.j === j) {
-                return s;
-            }
-        }
-
-        return null;
-    };
-
-    Sector.$$hasChild = function (pID, size, i, j) {
-        return !!Sector.$childAt(pID, size, i, j);
-    };
-
-    Sector.$$clean();
-
-    Sector.get = function (id) {
-        return Sector.$$index[id];
-    };
-
-    /**
-     * a ducktype test for basic registrability
-     * @param s {object}
-     * @returns {boolean}
-     */
-    Sector.notASector = function (s) {
-        return !(s && typeof s === 'object' && s.hasOwnProperty('id'));
-    };
-
-    Sector.$$register = function (newSector) {
-        if (Sector.notASector(newSector)) {
-            return;
-        }
-        Sector.$$index[newSector.id] = newSector;
-        for (var i = Sector.$$list.length - 1; i >= 0; --i) {
-            if (Sector.$$list[i].id === newSector.id) {
-                Sector.$$list.splice(i, 1);
-            }
-        }
-        Sector.$$list.push(newSector);
-    };
-
-    Sector.$$unregister = function (newSector) {
-        if (Sector.notASector(newSector)) {
-            return;
-        }
-        delete(Sector.$$index[newSector.id]);
-
-        for (var i = Sector.$$list.length - 1; i >= 0; --i) {
-            if (Sector.$$list[i].id === newSector.id) {
-                Sector.$$list.splice(i, 1);
-            }
-        }
-    };
-
-    Sector.has = function (id) {
-        return !!Sector.$$index[id];
-    };
+    }
 
     root.Sector = Sector;
 
