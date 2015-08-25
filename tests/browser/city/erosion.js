@@ -25,9 +25,9 @@ var RAND_SCALE = 4;
 
 var erosion = new Erosion({
     size: canvas.width,
-    randPow: 1.5,
-    defaultHydration: 2,
-    evaporation: 0.333,
+    randPow: 2,
+    defaultHydration: 6,
+    evaporation: 0.6,
     sedInWater: 0.0125,
     sedimentErosion: 0.02,
     fastDrop: false,
@@ -51,7 +51,7 @@ document.getElementById('imgDiv2').appendChild(image);
 render(document.getElementById('terrainCanvas2'));
 
 var cycles = 0;
-var CYCLES = 5          ;
+var CYCLES = 8          ;
 var MAX = 30;
 function loop() {
     erosion.cycle(CYCLES);
