@@ -25,23 +25,24 @@ function render(canvas, doBlue) {
 
 }
 
-var CELLSIZE = 8;
+var CELLSIZE = 4;
 var SIZE = canvas.width / CELLSIZE;
-var NOISE_SCALE = 40;
+var NOISE_SCALE = 60;
 var NOISE_DIF = 10;
-var NOISE_SCALE_2 = 5;
+var NOISE_SCALE_2 = 10;
 var NOISE_DIF_2 = 3;
 var RAND_SCALE = 2;
 
 var erosion = new Erosion({
     size: SIZE,
-    randPow: 3,
     defaultHydration: 1,
-    evaporation: 0.25,
-    sedInWater: 0.05,
+    randPow: 1,
+    evaporation: 0.6,
+    sedInWater: 0.0125,
     sedimentErosion: 0.01,
     fastDrop: false,
     maxErosion: 1,
+    smoothWeight: 2,
     heightFn: function (i, j) {
         return (i - SIZE / 2) * -150 / SIZE
           + 60
