@@ -8,16 +8,17 @@
           Matrix = root.Matrix;
       }
 
-      var SMOOTH_WEIGHT = 3;
-
       function Erosion(params) {
           this.size = params.size || 10;
           this.sedimentErosion = params.sedimentErosion || 0.01;
           this.defaultHydration = params.defaultHydration || 1;
           this.evaporation = params.evaporation || 0.3;
           this.sedInWater = params.sedInWater || 0.01;
+          this.smoothWeight = params.smoothWeight || 3;
           this.randPow = params.randPow || 1;
           this.fastDrop = params.hasOwnProperty('fastDrop') ? params.fastDrop : false;
+          this.random = params.random || Math.random.bind(Math);
+          this.maxErosion = params.maxErosion || 2;
 
           this.data = Matrix.generate(this.size, function (i, j) {
               var height;
@@ -26,7 +27,7 @@
               } else if (params.heightFn) {
                   height = params.heightFn(i, j)
               } else {
-                  height = 100 + Math.random() * 100;
+                  height = 100 + this.random() * 100;
               }
               return {
                   rock: height,
@@ -43,7 +44,8 @@
               }
               var self = this;
               this.data.each(function (i, j, cell) {
-                  cell.water += Math.pow(Math.random(), self.randPow) * w;
+                  var r = self.random();
+                  cell.water += Math.pow(r, self.randPow) * w;
               });
               return this;
           },
@@ -67,13 +69,15 @@
 
           dissolve: function () {
               var sedimentErosion = this.sedimentErosion;
+              var self = this;
               this.data.each(function (i, j, cell) {
                   if (cell.water <= 0) {
                       return;
                   }
-                  var newSed = cell.water * sedimentErosion;
+                  var newSed = Math.max(0, Math.min(self.maxErosion, cell.water * sedimentErosion - cell.sediment));
+
                   cell.rock -= newSed;
-                  cell.sediment += newSed
+                  cell.sediment += newSed;
               });
               return this;
           },
@@ -147,6 +151,7 @@
               var water = info.cell.water;
               var dWater = Math.min(info.height - info.averageHeight, water);
               var dSediment = info.cell.sediment * dWater / water;
+              dWater -= dSediment;
 
               memo[info.i][info.j].water -= dWater;
               memo[info.i][info.j].sediment -= dSediment;
@@ -202,9 +207,10 @@
           },
 
           smooth: function () {
+              var self = this;
               var smoothed = this.data.map(function (i, j, cell, value) {
                   var neighbors = this.neighbors9(i, j);
-                  var sum = _.reduce(neighbors, function (sum, c) {
+                  var sum = lodash.reduce(neighbors, function (sum, c) {
                       if (!c) {
                           return sum;
                       }
@@ -215,10 +221,10 @@
                       sum.sediment += c.sediment;
                       return sum;
                   }, {
-                      water: SMOOTH_WEIGHT * cell.water,
-                      sediment: SMOOTH_WEIGHT * cell.sediment,
-                      rock: SMOOTH_WEIGHT * cell.rock,
-                      count: SMOOTH_WEIGHT
+                      water: self.smoothWeight * cell.water,
+                      sediment: self.smoothWeight * cell.sediment,
+                      rock: self.smoothWeight * cell.rock,
+                      count: self.smoothWeight
                   });
 
                   sum.water /= sum.count;
