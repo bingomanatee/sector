@@ -10,7 +10,7 @@
 
       function Erosion(params) {
           this.size = params.size || 10;
-          this.chanceOfRain = params.chanceOfRain || 0.01;
+          this.chanceOfRain = params.chanceOfRain || 0.05;
           this.amountOfRain = params.amountOfRain || 4;
           this.sedToWater = params.sedToWater || 0.05;
           this.sedInWater = params.sedInWater || 0.2;
@@ -129,7 +129,7 @@
               var self = this;
               this.data.each(function (i, j, cell) {
                   cell.rock -= cell.water * self.sedInWater;
-                  var shared = cell.water * self.sedInWater / 2;
+                  var shared = cell.water * Math.pow(self.sedInWater, 2);
                   var ns = _.compact(this.neighbors9(i, j));
                   _.each(ns, function (cell) {
                       cell.rock -= shared;
@@ -141,7 +141,7 @@
           cycle: function (count) {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  cell.rock += 4 * self.sedInWater * self.chanceOfRain * self.amountOfRain * count;
+                  cell.rock += 2 * self.sedInWater * self.chanceOfRain * self.amountOfRain * count;
               });
               while (--count >= 0) {
                   this.addRain();

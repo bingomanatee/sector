@@ -25,7 +25,7 @@ function render(canvas, doBlue) {
 
 }
 
-var CELLSIZE = 4;
+var CELLSIZE = 2;
 var SIZE = canvas.width / CELLSIZE;
 var NOISE_SCALE = 60;
 var NOISE_DIF = 4;
@@ -58,8 +58,8 @@ document.getElementById('imgDiv2').appendChild(image);
 render(document.getElementById('terrainCanvas2'));
 
 var cycles = 0;
-var CYCLES = 16;
-var MAX = 40;
+var CYCLES = 20;
+var MAX = 20;
 function loop() {
     erosion.cycle(CYCLES);
 
