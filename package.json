@@ -24,7 +24,6 @@
   },
   "homepage": "https://github.com/bingomanatee/sector#readme",
   "dependencies": {
-    "canvas": "^1.2.7",
     "lodash": "^3.10.1"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@
     } else {
         lodash = _;
     }
+
     function SectorStore(globalId) {
         this._list = [];
         this._index = {};
@@ -75,7 +76,7 @@
                 if (sector.id) {
                     delete this._index[sector.id];
                 }
-                _.remove(this._list, function (s) {
+                lodash.remove(this._list, function (s) {
                     return s === sector;
                 });
 
@@ -96,11 +97,11 @@
         },
 
         find: function (params) {
-            return _.find(this._list, params);
+            return lodash.find(this._list, params);
         },
 
         childAt: function (id, size, i, j) {
-            return _.find(this._list, {parentId: id, size: size, i: i, j: j});
+            return lodash.find(this._list, {parentId: id, size: size, i: i, j: j});
         },
 
         children: function (id, size, cb) {
@@ -133,15 +134,30 @@
             }
         },
 
-        leaves: function(){
-            return _.filter(this._list, 'isLeaf');
+        leaves: function () {
+            return lodash.filter(this._list, 'isLeaf');
         },
 
-        each: function(fn, order){
+        each: function (fn, order, filter) {
             var l = _(this._list);
-            if (order) l.sortBy(order);
+            if (filter) {
+                l.filter(filter);
+            }
+            if (order) {
+                l.sortBy(order);
+            }
 
-            _.each(l.value(), fn);
+            lodash.each(l.value(), fn);
+        },
+
+        eachLeaf: function (fn, order, filter) {
+            this.each(fn, order, function (sector) {
+                if (filter) {
+                    return sector.isLeaf && filter(sector);
+                } else {
+                    return sector.isLeaf;
+                }
+            });
         }
     };
 
