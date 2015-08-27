@@ -7,7 +7,7 @@ function render(canvas, doBlue) {
     ctx.fillColor = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    var WATER_SCALE = 2;
+    var WATER_SCALE = 1;
 
     _.each(erosion.data.data, function (row, i) {
         _.each(row, function (cell, j) {
@@ -28,21 +28,13 @@ function render(canvas, doBlue) {
 var CELLSIZE = 4;
 var SIZE = canvas.width / CELLSIZE;
 var NOISE_SCALE = 60;
-var NOISE_DIF = 10;
+var NOISE_DIF = 4;
 var NOISE_SCALE_2 = 10;
 var NOISE_DIF_2 = 3;
 var RAND_SCALE = 2;
 
 var erosion = new Erosion({
     size: SIZE,
-    defaultHydration: 1,
-    randPow: 1,
-    evaporation: 0.6,
-    sedInWater: 0.0125,
-    sedimentErosion: 0.01,
-    fastDrop: false,
-    maxErosion: 1,
-    smoothWeight: 2,
     heightFn: function (i, j) {
         return (i - SIZE / 2) * -150 / SIZE
           + 60
@@ -51,6 +43,9 @@ var erosion = new Erosion({
           + NOISE_SCALE * noise.simplex2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE);
     }
 });
+erosion.smooth();
+erosion.smooth();
+erosion.smooth();
 
 noise.seed(Math.random());
 erosion.data.each(function (i, j, cell) {
@@ -63,8 +58,8 @@ document.getElementById('imgDiv2').appendChild(image);
 render(document.getElementById('terrainCanvas2'));
 
 var cycles = 0;
-var CYCLES = 8;
-var MAX = 30;
+var CYCLES = 16;
+var MAX = 40;
 function loop() {
     erosion.cycle(CYCLES);
 

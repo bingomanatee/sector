@@ -64,7 +64,7 @@
 
                   console.log('cycle ', n);
               }
-           //   this.smooth();
+              this.smooth();
           },
 
           dissolve: function () {
