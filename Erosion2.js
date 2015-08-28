@@ -10,11 +10,14 @@
 
       function Erosion(params) {
           this.size = params.size || 10;
-          this.chanceOfRain = params.chanceOfRain || 0.05;
-          this.amountOfRain = params.amountOfRain || 4;
-          this.sedToWater = params.sedToWater || 0.05;
-          this.sedInWater = params.sedInWater || 0.2;
+          this.chanceOfRain = params.chanceOfRain || 0.25;
+          this.amountOfRain = params.amountOfRain || 1;
+          this.sedToWater = params.sedToWater || 0.02;
+          this.randomness = params.randomness || 0.1;
+          this.sedInWater = params.sedInWater || 0.75;
           this.evaporateRate = params.evaporateRate || 0.3;
+          this.sedSaturation = params.sedSaturation || 0.05;
+          this.smoothDrop = 1;
 
           this.data = Matrix.generate(this.size, function (i, j) {
               var height;
@@ -28,10 +31,10 @@
               return {
                   rock: height,
                   water: 0,
-                  sediment: 0,
+                  sed: 0,
                   rock2: 0,
                   water2: 0,
-                  sediment2: 0
+                  sed2: 0
               };
           });
       }
@@ -42,41 +45,74 @@
               this.data.each(function (i, j, cell) {
                   if (Math.random() < self.chanceOfRain) {
                       cell.water += self.amountOfRain;
+                      if (false) _.each(self.data.neighbors9(i, j, true), function (n) {
+                          if (n) {
+                              n.value.water += self.amountOfRain / 2;
+                          }
+                      })
                   }
-                  var targetSed = self.sedToWater * cell.water;
-                  if (targetSed > cell.sediment) {
-                      var sed = targetSed - cell.sediment;
-                      //    cell.sediment += sed;
-                      //   cell.rock -= sed;
+                  var sed = self.sedToWater * cell.water;
+                  sed -= cell.sed / 2;
+                  if (sed <= 0) {
+                      return;
                   }
+                  if (isNaN(sed)) {
+                      throw new Error('bad sed');
+                  }
+                  var rock = cell.rock;
+                  cell.sed += sed;
+                  cell.rock -= sed;
+                  if (cell.rock <= 0 && rock > 0) {
+                      console.log('cell zeroed');
+                  }
+
               })
           },
 
           height: function (cell, noWater) {
-              return cell.rock + cell.sediment + (noWater ? 0 : cell.water);
+              return cell.rock + cell.sed + (noWater ? 0 : cell.water);
           },
 
           smooth: function () {
+              var self = this;
               this.data.each(function (i, j, cell) {
-                  var nr = 0;
-                  var nc = 0;
-                  _.each(this.neighbors9(i, j), function (cell) {
-                      if (!cell) {
-                          return;
-                      }
-                      nr += cell.rock;
-                      ++nc;
-                  });
-                  cell.rock += nr / nc;
-                  cell.rock /= 2;
-              });
+
+                  if (cell.value.sediment) {
+                      var height = self.height(cell.value);
+                      _.each(_.compact(cell.neighbors9()), function (n) {
+                          var nHeight = self.height(n, true);
+                          if (height > (nHeight + self.smoothDrop)) {
+                              var move = (height - (nHeight + self.smoothDrop)) / 25;
+                              if (cell.value.sediment > 0) {
+                                  var sedMove = Math.max(move, cell.value.sediment);
+                                  cell.value.sediment -= sedMove;
+                                  n.sediment += sedMove;
+                                  move -= sedMove;
+                              }
+                              move /= 2;
+                              cell.value.rock -= move;
+                              n.rock += move;
+                          }
+                      });
+                  }
+              }, true)
           },
 
           moveWater: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  cell.value.di /= 2;
-                  cell.value.dj /= 2;
+                  if (cell.value.water <= 0) return;
+
+                  if(Math.random() < self.randomness){
+                      debugger;
+                      var sed = Math.min(cell.value.sed, cell.value.water * self.sedInWater);
+                      var neighbor = _.compact(cell.neighbors9());
+                      neighbor.sed2 += sed;
+                      neighbor.water2 += cell.value.water;
+                      cell.value.sed -= sed;
+                      cell.value.water2 -= cell.value.water;
+                      return;
+                  }
 
                   var baseHeight = self.height(cell.value);
                   var baseSedHeight = self.height(cell.value, true);
@@ -102,23 +138,23 @@
 
                   var avgDrop = totalDrop / (belowNeighbors.length + 1);
 
-                  var amountToDrop = Math.min(cell.value.water, avgDrop / 2);
-                  if (amountToDrop <= 0) {
+                  var flowingWater = Math.min(cell.value.water, avgDrop / 2);
+                  if (flowingWater <= 0) {
                       return;
                   }
+                  cell.value.water2 -= flowingWater;
 
-                  var sedimentToDrop = cell.value.sediment * amountToDrop / cell.value.water;
+                  var sedInMotion = 0;
+                  if (cell.value.sed) {
+                      sedInMotion = self.sedInWater * cell.value.sed * flowingWater / cell.value.water;
+                      cell.value.sed2 -= sedInMotion;
+                  }
 
                   _.each(belowNeighbors, function (bn) {
-                      var ratio = bn.drop / amountToDrop;
-                      var dropShare = amountToDrop * ratio;
-                      if (bn.sedHeight > baseSedHeight) {
-                          cell.value.water2 -= dropShare;
-                          bn.value.water2 += dropShare;
-                      } else {
-                          var waterShare = ratio * amountToDrop;
-                          cell.value.water2 -= waterShare;
-                      }
+                      var ratio = bn.drop / totalDrop;
+                      var waterShare = flowingWater * ratio;
+                      bn.value.water2 += waterShare;
+                      bn.value.sed2 += ratio * sedInMotion;
                   });
 
               }, true);
@@ -128,27 +164,29 @@
           resolve: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  cell.rock -= cell.water * self.sedInWater;
-                  var shared = cell.water * Math.pow(self.sedInWater, 2);
-                  var ns = _.compact(this.neighbors9(i, j));
-                  _.each(ns, function (cell) {
-                      cell.rock -= shared;
-                  });
+                  cell.water += cell.water2;
+                  cell.water = Math.max(0, cell.water);
+                  cell.water2 = 0;
+                  cell.sed += cell.sed2;
+                  cell.sed = Math.max(cell.sed, 0);
+                  cell.sed2 = 0;
+                  var maxsed = Math.max(0, cell.water * self.sedSaturation);
                   cell.water *= self.evaporateRate;
+
+                  if (maxsed < cell.sed) {
+                      cell.rock += Math.max(0, cell.sed - maxsed);
+                      cell.sed = maxsed;
+                  }
               });
           },
 
           cycle: function (count) {
-              var self = this;
-              this.data.each(function (i, j, cell) {
-                  cell.rock += 2 * self.sedInWater * self.chanceOfRain * self.amountOfRain * count;
-              });
               while (--count >= 0) {
                   this.addRain();
                   this.moveWater();
                   this.resolve();
               }
-            //  this.smooth();
+              this.smooth();
           }
       };
 

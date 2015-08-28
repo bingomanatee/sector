@@ -2,39 +2,50 @@ var canvas = document.getElementById('terrainCanvas');
 
 noise.seed(Math.random());
 
+var CELLSIZE = 2;
+var SIZE = canvas.width / CELLSIZE;
+var NOISE_SCALE = 60;
+var NOISE_DIF = 4;
+var NOISE_SCALE_2 = 30;
+var NOISE_DIF_2 = 8;
+var RAND_SCALE = 2;
+var cycles = 0;
+var CYCLES = 8;
+var MAX_CYCLES = 60;
+var WATER_SCALE = 1;
+
+var erosion;
+
 function render(canvas, doBlue) {
     var ctx = canvas.getContext('2d');
     ctx.fillColor = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    var WATER_SCALE = 1;
-
-    _.each(erosion.data.data, function (row, i) {
-        _.each(row, function (cell, j) {
-            var shade = Math.max(0, Math.min(255, Math.floor(255 * (cell.rock + cell.sediment - 40) / 100)));
-            ctx.fillStyle = 'rgb(' + shade + ',' + shade + ',' + shade + ')';
-            ctx.fillRect(CELLSIZE * i, CELLSIZE * j, CELLSIZE, CELLSIZE);
-         if (doBlue){
-             var green = Math.max(0, Math.min(255, Math.floor(255 * (cell.water - WATER_SCALE))));
-             var blue = 'rgba(0,' + green + ',255,' + Math.min(1, cell.water / WATER_SCALE) + ')';
-             ctx.fillStyle = blue;
-             ctx.fillRect(CELLSIZE * i, CELLSIZE * j, CELLSIZE / 2, CELLSIZE / 2);
-         }
-        });
+    erosion.data.each(function (i, j, cell) {
+        var height = erosion.height(cell);
+        var shade = Math.max(0, Math.min(255, (255 * height / 150)));
+        ctx.fillStyle = 'rgb(' + Math.floor(shade) + ',' + Math.round(shade) + ',' + Math.ceil(shade) + ')';
+        ctx.fillRect(CELLSIZE * i, CELLSIZE * j, CELLSIZE, CELLSIZE);
+        if (doBlue) {
+            var green = Math.max(0, Math.min(255, Math.floor(255 * (cell.water - WATER_SCALE))));
+            var blue = 'rgba(0,' + green + ',255,' + Math.min(1, cell.water / WATER_SCALE) + ')';
+            ctx.fillStyle = blue;
+            ctx.fillRect(CELLSIZE * i, CELLSIZE * j, CELLSIZE / 2, CELLSIZE / 2);
+        }
     });
 
 }
 
-var CELLSIZE = 2;
-var SIZE = canvas.width / CELLSIZE;
-var NOISE_SCALE = 60;
-var NOISE_DIF = 4;
-var NOISE_SCALE_2 = 10;
-var NOISE_DIF_2 = 3;
-var RAND_SCALE = 2;
-
-var erosion = new Erosion({
+erosion = new Erosion({
     size: SIZE,
+    waterAmount: 8,
+    chanceOfRain: 0.001,
+    sedToWater: 0.01,
+    smoothDrop: 4,
+    sedInWater: 0.75,
+    sedSaturation: 0.05,
+    evaporateRate: 0.5,
+    randomness: 0.01,
     heightFn: function (i, j) {
         return (i - SIZE / 2) * -150 / SIZE
           + 60
@@ -43,9 +54,6 @@ var erosion = new Erosion({
           + NOISE_SCALE * noise.simplex2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE);
     }
 });
-erosion.smooth();
-erosion.smooth();
-erosion.smooth();
 
 noise.seed(Math.random());
 erosion.data.each(function (i, j, cell) {
@@ -57,24 +65,26 @@ image.src = canvas.toDataURL('image.png');
 document.getElementById('imgDiv2').appendChild(image);
 render(document.getElementById('terrainCanvas2'));
 
-var cycles = 0;
-var CYCLES = 20;
-var MAX = 20;
-function loop() {
-    erosion.cycle(CYCLES);
+function doErode() {
 
-    render(canvas, true);
-    ++cycles;
-    document.getElementById('cycles').innerHTML = '' + (cycles * CYCLES);
-    document.getElementById('iter').innerHTML = '' + cycles;
-    if (MAX > cycles) {
-        setTimeout(loop, 500);
-    } else {
-        render(canvas);
-        var image = new Image();
-        image.src = canvas.toDataURL('image/png');
-        document.getElementById('imgDiv').appendChild(image);
-    }
-};
+    function loop() {
+        erosion.cycle(CYCLES);
 
-loop();
+        render(canvas, true);
+        ++cycles;
+        document.getElementById('cycles').innerHTML = '' + (cycles * CYCLES);
+        document.getElementById('iter').innerHTML = '' + cycles;
+        if (MAX_CYCLES > cycles) {
+            setTimeout(loop);
+        } else {
+            render(canvas);
+            var image = new Image();
+            image.src = canvas.toDataURL('image/png');
+            document.getElementById('imgDiv').appendChild(image);
+        }
+    };
+
+    setTimeout(loop);
+}
+
+$('.doErode').click(doErode);

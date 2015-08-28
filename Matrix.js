@@ -18,6 +18,16 @@
         this.value = matrix.get(i, j);
     }
 
+    MatrixCell.prototype = {
+        neighbors9: function(full){
+            return this.matrix.neighbors9(this.i, this.j, full);
+        },
+
+        neighbors4: function(full){
+            return this.matrix.neighbors4(this.i, this.j, full);
+        }
+    };
+
     Matrix.prototype = {
 
         get: function (i, j, meta) {
