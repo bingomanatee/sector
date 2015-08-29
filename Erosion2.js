@@ -1,11 +1,13 @@
 (function (root) {
-      var lodash, Matrix;
+      var lodash, Matrix, sd;
       if (!(typeof exports === 'undefined')) {
           lodash = require('lodash');
           Matrix = require('./Matrix').Matrix;
+          sd = require('./stddev').stddev;
       } else {
-          lodash = _;
+          lodash = root._;
           Matrix = root.Matrix;
+          sd = root.stddev;
       }
 
       function Erosion(params) {
@@ -45,7 +47,7 @@
               this.data.each(function (i, j, cell) {
                   if (Math.random() < self.chanceOfRain) {
                       cell.water += self.amountOfRain;
-                      _.each(self.data.neighbors9(i, j, true, 1), function (n) {
+                     if (1) _.each(self.data.neighbors9(i, j, true, 1), function (n) {
                           if (n) {
                               n.value.water += self.amountOfRain / 4;
                           }
@@ -76,26 +78,25 @@
           smooth: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
+                    var baseHeight = self.height(cell);
+                  var heights = _.map(_.compact(self.data.neighbors9(i, j, false, 2).concat([cell])), function(cell){
+                      return self.height(cell);
+                  });
+                  var sd = stddev(heights);
 
-                  if (cell.value.sediment) {
-                      var height = self.height(cell.value);
-                      _.each(_.compact(cell.neighbors9()), function (n) {
-                          var nHeight = self.height(n, true);
-                          if (height > (nHeight + self.smoothDrop)) {
-                              var move = (height - (nHeight + self.smoothDrop)) / 25;
-                              if (cell.value.sediment > 0) {
-                                  var sedMove = Math.max(move, cell.value.sediment);
-                                  cell.value.sediment -= sedMove;
-                                  n.sediment += sedMove;
-                                  move -= sedMove;
-                              }
-                              move /= 2;
-                              cell.value.rock -= move;
-                              n.rock += move;
-                          }
-                      });
+                  var smoothScale = 3 - sd;
+
+                  if (smoothScale > 0){
+                      var avgHeights = _.reduce(heights, function(out, h){
+                          return out + h;
+                      }, 0)/heights.length;
+                      var scale = avgHeights/baseHeight;
+                      scale = (9 + scale)/10;
+                      cell.rock *= scale;
+                      cell.sediment *= scale;
                   }
-              }, true)
+
+              });
           },
 
           moveWater: function () {
@@ -191,7 +192,7 @@
                   this.moveWater();
                   this.resolve();
               }
-              this.smooth();
+          //   this.smooth();
           }
       };
 
