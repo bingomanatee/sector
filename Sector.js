@@ -224,7 +224,7 @@
 
             for (var i = 0; i < size; ++i) {
                 for (var j = 0; j < size; ++j) {
-                    var content = populate ? populate(i, j, this) : null;
+                    var content = populate ? populate(i, j, this, size) : null;
                     var existingChild = this.store.childAt(this.id, size, i, j);
                     if (existingChild) {
                         if (populate) {
