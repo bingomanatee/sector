@@ -6,14 +6,17 @@ var CELLSIZE = 2;
 var SIZE = canvas.width / CELLSIZE;
 var NOISE_SCALE = 60;
 var NOISE_DIF = 4;
-var NOISE_SCALE_2 = 30;
-var NOISE_DIF_2 = 8;
+var NOISE_SCALE_2 = 20;
+var NOISE_DIF_2 = 12;
 var RAND_SCALE = 2;
 var cycles = 0;
-var CYCLES = 8;
-var MAX_CYCLES = 60;
+var CYCLES = 6;
+var MAX_CYCLES = 50;
 var WATER_SCALE = 1;
-
+var HEIGHT_POW = 1.75;
+var HEIGHT_FACTOR = 0.05;
+var SLOPE_SCALE =100;
+var SLOPE_OFFSET = 0.25;
 var erosion;
 
 function render(canvas, doBlue) {
@@ -38,8 +41,8 @@ function render(canvas, doBlue) {
 
 erosion = new Erosion({
     size: SIZE,
-    waterAmount: 8,
-    chanceOfRain: 0.001,
+    waterAmount: 12,
+    chanceOfRain: 0.01,
     sedToWater: 0.01,
     smoothDrop: 4,
     sedInWater: 0.75,
@@ -47,17 +50,21 @@ erosion = new Erosion({
     evaporateRate: 0.5,
     randomness: 0.01,
     heightFn: function (i, j) {
-        return (i - SIZE / 2) * -150 / SIZE
-          + 60
-              //+ 10 * Math.random()
-          + RAND_SCALE * Math.random()
-          + NOISE_SCALE * noise.simplex2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE);
+        var random = RAND_SCALE * Math.random();
+        var slope = SLOPE_SCALE * (SLOPE_OFFSET + (i - SIZE / 2) * -1 / SIZE);
+        var hills = Math.max(0, NOISE_SCALE * noise.simplex2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE));
+        var hi = hills < 0 ? -1 : 1;
+        hills = HEIGHT_FACTOR *  hi * Math.pow(Math.abs(hills), HEIGHT_POW);
+        var height = slope
+          + random
+          + hills;
+return height;
     }
 });
 
 noise.seed(Math.random());
 erosion.data.each(function (i, j, cell) {
-    cell.rock += NOISE_SCALE_2 * Math.abs(noise.perlin2(j * NOISE_DIF_2 / SIZE, i * NOISE_DIF_2 / SIZE))
+    cell.rock += NOISE_SCALE_2 * (noise.perlin2(j * NOISE_DIF_2 / SIZE, i * NOISE_DIF_2 / SIZE))
 });
 render(canvas);
 var image = new Image();

@@ -46,11 +46,13 @@
             return [this.get(i - 1, j, meta), this.get(i + 1, j, meta), this.get(i, j - 1, meta), this.get(i, j + 1, meta)];
         },
 
-        neighbors9: function (i, j, meta) {
+        neighbors9: function (i, j, meta, range) {
             var out = [];
+            
+            range |= 1;
 
-            for (var ii = i - 1; ii <= i + 1; ++ii) {
-                for (var jj = j - 1; jj <= j + 1; ++jj) {
+            for (var ii = i - range; ii <= i + range; ++ii) {
+                for (var jj = j - range; jj <= j + range; ++jj) {
                     if (!(i === ii && j === jj)) {
                         out.push(this.get(ii, jj, meta));
                     }

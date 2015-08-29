@@ -45,9 +45,9 @@
               this.data.each(function (i, j, cell) {
                   if (Math.random() < self.chanceOfRain) {
                       cell.water += self.amountOfRain;
-                      if (false) _.each(self.data.neighbors9(i, j, true), function (n) {
+                      _.each(self.data.neighbors9(i, j, true, 1), function (n) {
                           if (n) {
-                              n.value.water += self.amountOfRain / 2;
+                              n.value.water += self.amountOfRain / 4;
                           }
                       })
                   }
@@ -104,7 +104,6 @@
                   if (cell.value.water <= 0) return;
 
                   if(Math.random() < self.randomness){
-                      debugger;
                       var sed = Math.min(cell.value.sed, cell.value.water * self.sedInWater);
                       var neighbor = _.compact(cell.neighbors9());
                       neighbor.sed2 += sed;
@@ -172,6 +171,12 @@
                   cell.sed2 = 0;
                   var maxsed = Math.max(0, cell.water * self.sedSaturation);
                   cell.water *= self.evaporateRate;
+                  if (cell.water <= 0.01){
+                      cell.water = 0;
+                      cell.rock += cell.sed;
+                      cell.sed = 0;
+                      return;
+                  }
 
                   if (maxsed < cell.sed) {
                       cell.rock += Math.max(0, cell.sed - maxsed);
