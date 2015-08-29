@@ -1,5 +1,6 @@
 (function (root) {
       var lodash, Matrix, sd;
+
       if (!(typeof exports === 'undefined')) {
           lodash = require('lodash');
           Matrix = require('./Matrix').Matrix;
@@ -64,10 +65,6 @@
                   var rock = cell.rock;
                   cell.sed += sed;
                   cell.rock -= sed;
-                  if (cell.rock <= 0 && rock > 0) {
-                      console.log('cell zeroed');
-                  }
-
               })
           },
 
@@ -82,9 +79,9 @@
                   var heights = _.map(_.compact(self.data.neighbors9(i, j, false, 2).concat([cell])), function(cell){
                       return self.height(cell);
                   });
-                  var sd = stddev(heights);
+                  var d = sd(heights);
 
-                  var smoothScale = 3 - sd;
+                  var smoothScale = 3 - d;
 
                   if (smoothScale > 0){
                       var avgHeights = _.reduce(heights, function(out, h){
@@ -192,7 +189,7 @@
                   this.moveWater();
                   this.resolve();
               }
-          //   this.smooth();
+             this.smooth();
           }
       };
 

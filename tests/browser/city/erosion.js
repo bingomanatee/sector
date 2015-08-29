@@ -4,14 +4,14 @@ noise.seed(Math.random());
 
 var CELLSIZE = 2;
 var SIZE = canvas.width / CELLSIZE;
-var NOISE_SCALE = 70;
-var NOISE_DIF = 8;
+var NOISE_SCALE = 90;
+var NOISE_DIF = 6;
 var NOISE_SCALE_2 = 20;
 var NOISE_DIF_2 = 16;
 var RAND_SCALE = 2;
 var cycles = 0;
 var CYCLES = 6;
-var MAX_CYCLES = 50;
+var MAX_CYCLES = 30;
 var WATER_SCALE = 1;
 var HEIGHT_POW = 1.95;
 var HEIGHT_FACTOR = 0.05;
