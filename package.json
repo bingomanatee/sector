@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/bingomanatee/sector#readme",
   "dependencies": {
+    "cli-table": "^0.3.1",
     "lodash": "^3.10.1"
   },
   "devDependencies": {

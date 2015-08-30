@@ -6,7 +6,7 @@ var CELLSIZE = 3;
 var SIZE = canvas.width / CELLSIZE;
 var NOISE_SCALE = 100;
 var NOISE_DIF = 6;
-var NOISE_SCALE_2 = 15;
+var NOISE_SCALE_2 = 30;
 var NOISE_DIF_2 = 16;
 var RAND_SCALE = 2;
 var cycles = 0;
@@ -41,19 +41,20 @@ function render(canvas, doBlue) {
 
 erosion = new Erosion({
     size: SIZE,
-    waterAmount: 12,
-    chanceOfRain: 0.01,
-    sedToWater: 0.01,
+    waterAmount: 3,
+    chanceOfRain: 0.02,
+    sedToWater: 0.05,
     smoothDrop: 4,
     sedInWater: 1,
-    sedSaturation: 0.1,
+    sedSaturation: 0.2,
     evaporateRate: 0.8,
+    sedDryRate: 0.99,
     randomness: 0.1,
     heightFn: function (i, j) {
         var random = RAND_SCALE * Math.random();
         var slope = SLOPE_SCALE * (SLOPE_OFFSET + (i - SIZE / 2) * -1 / SIZE);
         var hills = Math.abs( NOISE_SCALE * noise.perlin2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE));
-       // var hi = hills < 0 ? -1 : 1;
+        var hi = hills < 0 ? -1 : 1;
         hills = HEIGHT_FACTOR * hi * Math.pow(Math.abs(hills), HEIGHT_POW);
         var height = slope
           + random
@@ -79,6 +80,7 @@ document.getElementById('imgDiv2').appendChild(image);
 render(document.getElementById('terrainCanvas2'));
 
 function doErode() {
+    erosion.smooth(true);
 
     function loop() {
         erosion.cycle(CYCLES);

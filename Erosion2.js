@@ -20,6 +20,7 @@
           this.sedInWater = params.sedInWater || 0.75;
           this.evaporateRate = params.evaporateRate || 0.3;
           this.sedSaturation = params.sedSaturation || 0.05;
+          this.sedDryRate = params.sedDryRate || 0.8;
           this.smoothDrop = 1;
 
           this.data = Matrix.generate(this.size, function (i, j) {
@@ -71,7 +72,7 @@
               return cell.rock + cell.sed + (noWater ? 0 : cell.water);
           },
 
-          smooth: function () {
+          smooth: function (smoothAll) {
               var self = this;
               this.data.each(function (i, j, cell) {
                     var baseHeight = self.height(cell);
@@ -81,6 +82,11 @@
                   }, 0)/neighborHeights.length;
 
                   var scale = neighborHeight/baseHeight;
+                  if (smoothAll){
+                      cell.rock *= scale;
+                      cell.sed *= scale;
+                      return;
+                  }
                   if (Math.abs(neighborHeight - baseHeight)>  6){
                       cell.rock *= scale;
                       cell.sed *= scale;
@@ -170,11 +176,13 @@
                   cell.sed = Math.max(cell.sed, 0);
                   cell.sed2 = 0;
                   var maxsed = Math.max(0, cell.water * self.sedSaturation);
+                  var drySed = Math.min(maxsed, cell.sed) * self.sedDryRate;
+
                   cell.water *= self.evaporateRate;
                   if (cell.water <= 0.01){
                       cell.water = 0;
-                      cell.rock += cell.sed;
-                      cell.sed = 0;
+                      cell.rock += drySed;
+                      cell.sed -= drySed;
                       return;
                   }
 

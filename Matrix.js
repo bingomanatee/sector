@@ -19,11 +19,11 @@
     }
 
     MatrixCell.prototype = {
-        neighbors9: function(full){
+        neighbors9: function (full) {
             return this.matrix.neighbors9(this.i, this.j, full);
         },
 
-        neighbors4: function(full){
+        neighbors4: function (full) {
             return this.matrix.neighbors4(this.i, this.j, full);
         }
     };
@@ -48,7 +48,7 @@
 
         neighbors9: function (i, j, meta, range) {
             var out = [];
-            
+
             range |= 1;
 
             for (var ii = i - range; ii <= i + range; ++ii) {
@@ -93,6 +93,10 @@
                                 out = {};
                                 break;
 
+                            case 'cell':
+                                out = cell;
+                                break;
+
                             default:
                                 out = init;
                         }
@@ -105,7 +109,8 @@
 
             for (var i = 0; i < this.size; ++i) {
                 for (var j = 0; j < this.size; ++j) {
-                    memo[i][j] = boundFn(i, j, this.get(i, j, getMeta), memo[i][j], memo);
+                    var value = this.get(i, j, getMeta);
+                    memo[i][j] = boundFn(i, j, value, memo[i][j], memo);
                 }
             }
 
@@ -120,6 +125,10 @@
                     boundFn(i, j, this.get(i, j, getMeta));
                 }
             }
+        },
+
+        update: function (fn, getMeta) {
+            this.data = this.map(fn, null, getMeta);
         }
 
     };
