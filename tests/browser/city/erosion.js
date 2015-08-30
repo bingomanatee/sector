@@ -2,16 +2,16 @@ var canvas = document.getElementById('terrainCanvas');
 
 noise.seed(Math.random());
 
-var CELLSIZE = 2;
+var CELLSIZE = 3;
 var SIZE = canvas.width / CELLSIZE;
-var NOISE_SCALE = 90;
+var NOISE_SCALE = 100;
 var NOISE_DIF = 6;
-var NOISE_SCALE_2 = 20;
+var NOISE_SCALE_2 = 15;
 var NOISE_DIF_2 = 16;
 var RAND_SCALE = 2;
 var cycles = 0;
-var CYCLES = 6;
-var MAX_CYCLES = 30;
+var CYCLES = 10;
+var MAX_CYCLES = 40;
 var WATER_SCALE = 1;
 var HEIGHT_POW = 1.95;
 var HEIGHT_FACTOR = 0.05;
@@ -45,15 +45,15 @@ erosion = new Erosion({
     chanceOfRain: 0.01,
     sedToWater: 0.01,
     smoothDrop: 4,
-    sedInWater: 0.75,
-    sedSaturation: 0.05,
-    evaporateRate: 0.5,
-    randomness: 0.01,
+    sedInWater: 1,
+    sedSaturation: 0.1,
+    evaporateRate: 0.8,
+    randomness: 0.1,
     heightFn: function (i, j) {
         var random = RAND_SCALE * Math.random();
         var slope = SLOPE_SCALE * (SLOPE_OFFSET + (i - SIZE / 2) * -1 / SIZE);
-        var hills = Math.max(0, NOISE_SCALE * noise.perlin2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE));
-        var hi = hills < 0 ? -1 : 1;
+        var hills = Math.abs( NOISE_SCALE * noise.perlin2(i * NOISE_DIF / SIZE, j * NOISE_DIF / SIZE));
+       // var hi = hills < 0 ? -1 : 1;
         hills = HEIGHT_FACTOR * hi * Math.pow(Math.abs(hills), HEIGHT_POW);
         var height = slope
           + random
@@ -65,10 +65,13 @@ erosion = new Erosion({
     }
 });
 
-noise.seed(Math.random());
-erosion.data.each(function (i, j, cell) {
-    cell.rock += NOISE_SCALE_2 * (noise.perlin2(j * NOISE_DIF_2 / SIZE, i * NOISE_DIF_2 / SIZE))
-});
+if (true) {
+    noise.seed(Math.random());
+    erosion.data.each(function (i, j, cell) {
+        cell.rock += NOISE_SCALE_2 * (noise.perlin2(j * NOISE_DIF_2 / SIZE, i * NOISE_DIF_2 / SIZE))
+    });
+}
+
 render(canvas);
 var image = new Image();
 image.src = canvas.toDataURL('image.png');

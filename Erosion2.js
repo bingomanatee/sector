@@ -62,7 +62,6 @@
                   if (isNaN(sed)) {
                       throw new Error('bad sed');
                   }
-                  var rock = cell.rock;
                   cell.sed += sed;
                   cell.rock -= sed;
               })
@@ -76,21 +75,24 @@
               var self = this;
               this.data.each(function (i, j, cell) {
                     var baseHeight = self.height(cell);
-                  var heights = _.map(_.compact(self.data.neighbors9(i, j, false, 2).concat([cell])), function(cell){
-                      return self.height(cell);
-                  });
-                  var d = sd(heights);
+                  var neighborHeights = _.map(_.compact(self.data.neighbors9(i, j, false, 2)), self.height.bind(self));
+                  var neighborHeight = _.reduce(neighborHeights, function(o, h){
+                      return o + h;
+                  }, 0)/neighborHeights.length;
 
-                  var smoothScale = 3 - d;
-
-                  if (smoothScale > 0){
-                      var avgHeights = _.reduce(heights, function(out, h){
-                          return out + h;
-                      }, 0)/heights.length;
-                      var scale = avgHeights/baseHeight;
-                      scale = (9 + scale)/10;
+                  var scale = neighborHeight/baseHeight;
+                  if (Math.abs(neighborHeight - baseHeight)>  6){
                       cell.rock *= scale;
-                      cell.sediment *= scale;
+                      cell.sed *= scale;
+                  }
+                  return;
+
+                  var d = stddev(neighborHeights.concat(baseHeight));
+
+                  if (d > 3){
+                      scale = (scale + 3/4);
+                      cell.rock *= scale;
+                      cell.sed *= scale;
                   }
 
               });
