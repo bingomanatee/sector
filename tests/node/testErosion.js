@@ -3,7 +3,7 @@ var expect = chai.expect;
 var Erosion = require('./../../Erosion').Erosion;
 var _ = require('lodash');
 
-describe('Erosion', function () {
+describe.skip('Erosion', function () {
 
     var erosion;
     var randomDigits;

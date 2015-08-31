@@ -139,7 +139,26 @@ describe('MatrixPackedArray', function () {
         });
     });
 
-    describe('benchmrking', function () {
+    describe('#add', function(){
+
+        var mpa5;
+        beforeEach(function () {
+            mpa5 = new MatrixPackedArray({
+                num: MatrixPackedArray.TYPES.Int16
+            }, 3);
+
+            mpa5.numIJset(function (i, j) {
+                return 5;
+            });
+        });
+
+        it('should let us add', function(){
+            mpa5.numIJadd(1, 1, 8);
+            expect(mpa5.numIJ(1,1)).to.eql(13);
+        })
+    });
+
+    describe.skip('benchmrking', function () {
         var SIZE = 100;
         var r = 0;
         var seedFn = function (i, j) {
@@ -158,7 +177,6 @@ describe('MatrixPackedArray', function () {
         };
 
         describe('smoothing with matrix', function () {
-            var mValues;
             var mValues, mSmooth;
             mSmooth = function () {
                 mValues.update(function (i, j, value) {
@@ -271,7 +289,7 @@ describe('MatrixPackedArray', function () {
             });
         });
 
-        describe.only('smooth and slope', function () {
+        describe('smooth and slope', function () {
             describe('packed array', function () {
 
                 var ssValues;
@@ -308,7 +326,7 @@ describe('MatrixPackedArray', function () {
                     slope();
                 });
 
-                it.only('should do smooth and slope fairly fast', function () {
+                it('should do smooth and slope fairly fast', function () {
                     this.timeout(100000);
 
                     var count = 1000;

@@ -4,16 +4,16 @@ noise.seed(Math.random());
 
 var CELLSIZE = 3;
 var SIZE = canvas.width / CELLSIZE;
-var NOISE_SCALE = 100;
+var NOISE_SCALE = 40;
 var NOISE_DIF = 6;
-var NOISE_SCALE_2 = 30;
+var NOISE_SCALE_2 = 20;
 var NOISE_DIF_2 = 16;
 var RAND_SCALE = 2;
 var cycles = 0;
 var CYCLES = 10;
-var MAX_CYCLES = 40;
+var MAX_CYCLES = 10;
 var WATER_SCALE = 1;
-var HEIGHT_POW = 1.95;
+var HEIGHT_POW = 2.5;
 var HEIGHT_FACTOR = 0.05;
 var SLOPE_SCALE = 100;
 var SLOPE_OFFSET = 0.25;
@@ -39,16 +39,16 @@ function render(canvas, doBlue) {
 
 }
 
-erosion = new Erosion({
+erosion = new ErosionPacked({
     size: SIZE,
-    waterAmount: 3,
-    chanceOfRain: 0.02,
-    sedToWater: 0.05,
+    waterAmount: 30,
+    chanceOfRain: 0.1,
+    sedToWater: 0.02,
     smoothDrop: 4,
     sedInWater: 1,
     sedSaturation: 0.2,
-    evaporateRate: 0.8,
-    sedDryRate: 0.99,
+    evaporateRate: 0.7,
+    sedDryRate: 0.9,
     randomness: 0.1,
     heightFn: function (i, j) {
         var random = RAND_SCALE * Math.random();

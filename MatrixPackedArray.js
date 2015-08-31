@@ -59,125 +59,186 @@
 
     MatrixPackedArray.prototype = {
 
-        goodIndex: function (n) {
-            return (n >= 0 && n < this.size && (!(n % 1)));
+        goodIndex: function () {
+            for (var i = 0; i < arguments.length; ++i) {
+                var n = arguments[i];
+                if (!(n >= 0 && n < this.size && (!(n % 1)))) {
+                    return false;
+                }
+            }
+            return true;
+        },
+
+        neighbors: function (i, j, fn, noMiddle) {
+            fn = fn.bind(this);
+            for (var ii = i - 1; ii <= i + 1; ++ii) {
+                if (this.goodIndex(ii)) {
+                    for (var jj = j - 1; jj <= j + 1; ++jj) {
+                        if (this.goodIndex(jj)) {
+                            if (!noMiddle || (i != ii ) || (j != jj)) {
+                                fn(ii, jj);
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        each: function (fn) {
+            fn = fn.bind(this);
+
+            for (var i = 0; i < this.size; ++i) {
+                for (var j = 0; j < this.size; ++j) {
+                    fn(i, j);
+                }
+            }
+        },
+
+        inspect: function (i, j) {
+            var out = {};
+
+            lodash.each(lodash.keys(this.fieldList), function (key) {
+                out[key] = this[key + 'IJ'](i, j);
+            }, this);
+            return out;
         },
 
         digestFieldSet: function (fields) {
 
             var arraySize = this.size * this.size;
             lodash.each(fields, function (fieldType, name) {
-                var typeName = MatrixPackedArray.TYPE_NAMES[fieldType];
-                if (!this.arrays.hasOwnProperty(typeName)) {
-                    this.arrays[typeName] = 1;
-                } else {
-                    ++this.arrays[typeName];
-                }
-                var dataIndexOffset = this.arrays[typeName] - 1;
-                var arrayStart = dataIndexOffset * arraySize;
+                  var typeName = MatrixPackedArray.TYPE_NAMES[fieldType];
+                  if (!this.arrays.hasOwnProperty(typeName)) {
+                      this.arrays[typeName] = 1;
+                  } else {
+                      ++this.arrays[typeName];
+                  }
+                  var dataIndexOffset = this.arrays[typeName] - 1;
+                  var arrayStart = dataIndexOffset * arraySize;
 
-                this.fieldList[name] = {type: fieldType, offset: this.arrays[typeName]};
-                this[name + 'IJ'] = function (i, j, value) {
-                    if (!this.goodIndex(i) && this.goodIndex(j)) {
-                        throw new Error('attempt to set bad index for ' + name);
-                    }
-                    var index = dataIndexOffset * arraySize + (i * this.size) + j;
-                    if (arguments.length > 2) {
-                        return this.arrays[typeName][index] = value;
-                    }
-                    return this.arrays[typeName][index];
-                }.bind(this);
+                  this.fieldList[name] = {type: fieldType, offset: this.arrays[typeName]};
+                  var getIJ = this[name + 'IJ'] = function (i, j, value) {
+                      if (!this.goodIndex(i) && this.goodIndex(j)) {
+                          throw new Error('attempt to set bad index for ' + name);
+                      }
+                      var index = dataIndexOffset * arraySize + (i * this.size) + j;
+                      if (arguments.length > 2) {
+                          return this.arrays[typeName][index] = value;
+                      }
+                      return this.arrays[typeName][index];
+                  }.bind(this);
 
-                this[name + 'Values'] = function (toArray) {
-                    return Slice(this.arrays[typeName], toArray ? 'array' : typeName, arrayStart, arrayStart + arraySize);
-                }.bind(this);
+                  this[name + 'Values'] = function (toArray) {
+                      return Slice(this.arrays[typeName], toArray ? 'array' : typeName, arrayStart, arrayStart + arraySize);
+                  }.bind(this);
 
-                this[name + 'IJset'] = function (fn) {
-                    fn = fn.bind(this);
+                  this[name + 'IJset'] = function (setter) {
+                      if (typeof setter === 'function') {
+                          setter = setter.bind(this);
+                          this.each(function (i, j) {
+                              getIJ(i, j, setter(i, j));
+                          });
+                      } else {
+                          this.each(function (i, j) {
+                              getIJ(i, j, setter);
+                          });
+                      }
+                  }.bind(this);
 
-                    for (var i = 0; i < this.size; ++i) {
-                        for (var j = 0; j < this.size; ++j) {
-                            this.arrays[typeName][arrayStart + i * this.size + j] = fn(i, j);
-                        }
-                    }
-                }.bind(this);
+                  /**
+                   * reutrns an array of 18 values.
+                   * The first 9 are copies of the data
+                   * in range +/-1 from the array.
+                   * The next 9 are boolean flags indicating
+                   * whether the first 9 values have been set or not.
+                   *
+                   * @type {function(this:MatrixPackedArray)}
+                   */
+                  this[name + 'IJneighbors'] = function (i, j, fn) {
+                      var out = null;
+                      if (!fn) {
+                          out = makeArray(fieldType, 18);
+                      }
+                      var n = 0;
+                      for (var ii = i - 1; ii <= i + 1; ++ii) {
+                          for (var jj = j - 1; jj <= j + 1; ++jj) {
+                              if (this.goodIndex(ii) && this.goodIndex(jj)) {
+                                  var index = arrayStart + (ii * this.size) + jj;
+                                  if (fn) {
+                                      fn(ii, jj, this.arrays[typeName][index]);
+                                  } else {
+                                      out[n] = this.arrays[typeName][index];
+                                      out[n + 9] = 1;
+                                  }
+                              } else if (!fn) {
+                                  out[n + 9] = 0;
+                              }
+                              ++n;
+                          }
+                      }
+                      return out;
+                  }.bind(this);
 
-                /**
-                 * reutrns an array of 18 values.
-                 * The first 9 are copies of the data
-                 * in range +/-1 from the array.
-                 * The next 9 are boolean flags indicating
-                 * whether the first 9 values have been set or not.
-                 *
-                 * @type {function(this:MatrixPackedArray)}
-                 */
-                this[name + 'IJneighbors'] = function (i, j, fn) {
-                    var out = null;
-                    if (!fn) {
-                        out = makeArray(fieldType, 18);
-                    }
-                    var n = 0;
-                    for (var ii = i - 1; ii <= i + 1; ++ii) {
-                        for (var jj = j - 1; jj <= j + 1; ++jj) {
-                            if (this.goodIndex(ii) && this.goodIndex(jj)) {
-                                var index = arrayStart + (ii * this.size) + jj;
-                                if (fn) {
-                                    fn(ii, jj, this.arrays[typeName][index]);
-                                } else {
-                                    out[n] = this.arrays[typeName][index];
-                                    out[n + 9] = 1;
-                                }
-                            } else if (!fn) {
-                                out[n + 9] = 0;
-                            }
-                            ++n;
-                        }
-                    }
-                    return out;
-                }.bind(this);
+                  this[name + 'ToString'] = function (width) {
+                      if (Table) {
+                          var columns = ['J'].concat(lodash.map(lodash.range(0, this.size), function (i) {
+                              return 'i:' + i
+                          }));
+                          var def = {head: columns};
+                          if (width) {
+                              def.colWidths = lodash.map(lodash.range(0, this.size + 1), function () {
+                                  return width;
+                              });
+                          }
+                          var t = new Table(def);
+                          lodash.each(lodash.range(0, this.size), function (j) {
+                              t.push([j].concat(lodash.map(lodash.range(0, this.size), function (i) {
+                                  return this[name + 'IJ'](i, j);
+                              }, this)));
+                          }, this);
+                          return t.toString();
+                      }
+                  }.bind(this);
 
-                this[name + 'ToString'] = function (width) {
-                    if (Table) {
-                        var columns = ['J'].concat(lodash.map(lodash.range(0, this.size), function (i) {
-                            return 'i:' + i
-                        }));
-                        var def = {head: columns};
-                        if (width) {
-                            def.colWidths = lodash.map(lodash.range(0, this.size + 1), function () {
-                                return width;
-                            });
-                        }
-                        var t = new Table(def);
-                        lodash.each(lodash.range(0, this.size), function (j) {
-                            t.push([j].concat(lodash.map(lodash.range(0, this.size), function (i) {
-                                return this[name + 'IJ'](i, j);
-                            }, this)));
-                        }, this);
-                        return t.toString();
-                    }
-                }.bind(this);
+                  this[name + 'IJupdate'] = function (fn) {
+                      var out = makeArray(fieldType, arraySize);
+                      fn = fn.bind(this);
 
-                this[name + 'IJupdate'] = function (fn) {
-                    var out = makeArray(fieldType, arraySize);
-                    fn = fn.bind(this);
+                      var n = 0;
+                      for (var i = 0; i < this.size; ++i) {
+                          for (var j = 0; j < this.size; ++j) {
+                              out[n] = fn(i, j, this[name + 'IJ'](i, j));
+                              ++n;
+                          }
+                      }
 
-                    var n = 0;
-                    for (var i = 0; i < this.size; ++i) {
-                        for (var j = 0; j < this.size; ++j) {
-                            out[n] = fn(i, j, this[name + 'IJ'](i, j));
-                            ++n;
-                        }
-                    }
+                      for (var ii = 0; ii < this.size; ++ii) {
+                          for (var jj = 0; jj < this.size; ++jj) {
+                              this[name + 'IJ'](ii, jj, out[ii * this.size + jj]);
+                          }
+                      }
 
-                    for (var ii = 0; ii < this.size; ++ii) {
-                        for (var jj = 0; jj < this.size; ++jj) {
-                            this[name + 'IJ'](ii, jj, out[ii * this.size + jj]);
-                        }
-                    }
+                  }.bind(this);
 
-                }.bind(this);
+                  this[name + 'IJadd'] = function (i, j, value) {
+                      var newValue = (getIJ(i, j) || 0) + value;
+                      getIJ(i, j, newValue);
+                      return newValue;
+                  }.bind(this);
 
-            }, this);
+                  this[name + 'IJsubtract'] = function (i, j, value) {
+                      var newValue = (getIJ(i, j) || 0) - value;
+                      getIJ(i, j, newValue);
+                      return newValue;
+                  }.bind(this);
+
+                  this[name + 'IJmultiply'] = function (i, j, factor) {
+                      var newValue = (getIJ(i, j) || 0) * factor;
+                      getIJ(i, j, newValue);
+                      return newValue;
+                  }
+
+              }, this);
 
             if (this.arrays.Int8) {
                 this.arrays.Int8 = new Int8Array(this.arrays.Int8 * arraySize);
