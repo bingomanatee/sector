@@ -20,7 +20,6 @@
           this.sedInWater = params.sedInWater || 0.75;
           this.evaporateRate = params.evaporateRate || 0.3;
           this.sedSaturation = params.sedSaturation || 0.05;
-          this.sedDryRate = params.sedDryRate || 0.8;
           this.smoothDrop = 1;
 
           this.data = Matrix.generate(this.size, function (i, j) {
@@ -44,29 +43,24 @@
       }
 
       Erosion.prototype = {
-          rain: function () {
+          addRain: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
                   if (Math.random() < self.chanceOfRain) {
                       cell.water += self.amountOfRain;
-                      if (1) {
-                          _.each(self.data.neighbors9(i, j, true, 1), function (n) {
-                              if (n) {
-                                  n.value.water += self.amountOfRain / 4;
-                              }
-                          })
-                      }
+                     if (1) _.each(self.data.neighbors9(i, j, true, 1), function (n) {
+                          if (n) {
+                              n.value.water += self.amountOfRain / 4;
+                          }
+                      })
                   }
-              })
-          },
-
-          dissolve: function () {
-              var self = this;
-              this.data.each(function (i, j, cell) {
                   var sed = self.sedToWater * cell.water;
                   sed -= cell.sed / 2;
                   if (sed <= 0) {
                       return;
+                  }
+                  if (isNaN(sed)) {
+                      throw new Error('bad sed');
                   }
                   cell.sed += sed;
                   cell.rock -= sed;
@@ -77,22 +71,17 @@
               return cell.rock + cell.sed + (noWater ? 0 : cell.water);
           },
 
-          smooth: function (smoothAll) {
+          smooth: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  var baseHeight = self.height(cell);
+                    var baseHeight = self.height(cell);
                   var neighborHeights = _.map(_.compact(self.data.neighbors9(i, j, false, 2)), self.height.bind(self));
-                  var neighborHeight = _.reduce(neighborHeights, function (o, h) {
-                        return o + h;
-                    }, 0) / neighborHeights.length;
+                  var neighborHeight = _.reduce(neighborHeights, function(o, h){
+                      return o + h;
+                  }, 0)/neighborHeights.length;
 
-                  var scale = neighborHeight / baseHeight;
-                  if (smoothAll) {
-                      cell.rock *= scale;
-                      cell.sed *= scale;
-                      return;
-                  }
-                  if (Math.abs(neighborHeight - baseHeight) > 6) {
+                  var scale = neighborHeight/baseHeight;
+                  if (Math.abs(neighborHeight - baseHeight)>  6){
                       cell.rock *= scale;
                       cell.sed *= scale;
                   }
@@ -100,8 +89,8 @@
 
                   var d = stddev(neighborHeights.concat(baseHeight));
 
-                  if (d > 3) {
-                      scale = (scale + 3 / 4);
+                  if (d > 3){
+                      scale = (scale + 3/4);
                       cell.rock *= scale;
                       cell.sed *= scale;
                   }
@@ -112,11 +101,9 @@
           moveWater: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  if (cell.value.water <= 0) {
-                      return;
-                  }
+                  if (cell.value.water <= 0) return;
 
-                  if (Math.random() < self.randomness) {
+                  if(Math.random() < self.randomness){
                       var sed = Math.min(cell.value.sed, cell.value.water * self.sedInWater);
                       var neighbor = _.compact(cell.neighbors9());
                       neighbor.sed2 += sed;
@@ -127,6 +114,7 @@
                   }
 
                   var baseHeight = self.height(cell.value);
+                  var baseSedHeight = self.height(cell.value, true);
                   var belowNeighbors = [];
                   var totalDrop = 0;
                   _.each(this.neighbors9(i, j, true), function (nCell) {
@@ -134,14 +122,13 @@
                           return;
                       }
                       var nHeight = self.height(nCell.value);
-                      if (nHeight >= baseHeight) {
-                          return;
-                      }
                       nCell.height = nHeight;
                       nCell.sedHeight = self.height(nCell.value, true);
                       nCell.drop = baseHeight - nHeight;
                       totalDrop += nCell.drop;
-                      belowNeighbors.push(nCell);
+                      if (baseHeight > nHeight) {
+                          belowNeighbors.push(nCell);
+                      }
                   });
 
                   if (belowNeighbors.length < 1) {
@@ -176,20 +163,18 @@
           resolve: function () {
               var self = this;
               this.data.each(function (i, j, cell) {
-                  cell.water += cell.—water2;
+                  cell.water += cell.water2;
                   cell.water = Math.max(0, cell.water);
                   cell.water2 = 0;
                   cell.sed += cell.sed2;
                   cell.sed = Math.max(cell.sed, 0);
                   cell.sed2 = 0;
                   var maxsed = Math.max(0, cell.water * self.sedSaturation);
-                  var drySed = Math.min(maxsed, cell.sed) * self.sedDryRate;
-
                   cell.water *= self.evaporateRate;
-                  if (cell.water <= 0.01) {
+                  if (cell.water <= 0.01){
                       cell.water = 0;
-                      cell.rock += drySed;
-                      cell.sed -= drySed;
+                      cell.rock += cell.sed;
+                      cell.sed = 0;
                       return;
                   }
 
@@ -203,11 +188,10 @@
           cycle: function (count) {
               while (--count >= 0) {
                   this.addRain();
-                  this.dissolve();
                   this.moveWater();
                   this.resolve();
               }
-              this.smooth();
+             this.smooth();
           }
       };
 
