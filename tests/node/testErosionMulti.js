@@ -1,10 +1,10 @@
 var chai = require('chai');
 var expect = chai.expect;
-var ErosionPacked = require('./../../ErosionPacked').ErosionPacked;
+var ErosionPacked = require('./../../ErosionMulti').ErosionMulti;
 var _ = require('lodash');
 var util = require('util');
 
-describe.skip('ErosionPacked', function () {
+describe('ErosionMulti', function () {
     var erosion;
 
     beforeEach(function () {
@@ -27,6 +27,9 @@ describe.skip('ErosionPacked', function () {
             rock: 100,
             chanceOfRain: 0.25,
             waterToNeighbors: 0.1,
+            saturationRatio: 0.5,
+            transportRatio: 0.25,
+            randomness: 0.1,
             amountOfRain: 10,
             dissolveRatio: 0.25,
             randomValue: function () {
@@ -119,11 +122,6 @@ describe.skip('ErosionPacked', function () {
 
         it('#transport', function () {
             erosion.transport(0, 2, lowest);
-            // var cell02 = erosion.data.inspect(0, 2);
-            //  var cell01height =  erosion.height(0, 1);
-            //  console.log('cell02:', cell02, cell02height);
-            //   console.log('cell01 height:', cell01height);
-            //  console.log('drop: ', (cell02height - cell01height)/2);
             expect(erosion.data.water2IJ(0, 2)).to.eql(-12.5);
             expect(erosion.data.sed2IJ(0, 2)).to.eql(-1.25);
         });
@@ -140,38 +138,49 @@ describe.skip('ErosionPacked', function () {
                 return j * 10;
             });
 
+            console.log('water: ');
+            console.log(_.chunk(erosion.data.waterValues(), 5));
+            console.log('sed: ');
+            console.log(_.chunk(erosion.data.sedValues(), 5));
             erosion.evaporate();
+            console.log('postevap water: ');
+            console.log(_.chunk(erosion.data.waterValues(), 5));
+            console.log('postevap sed: ');
+            console.log(_.chunk(erosion.data.sedValues(), 5));
+            console.log('postevap rock: ');
+            console.log(_.chunk(erosion.data.rockValues(), 5));
 
         });
 
         it('should change the rocks', function () {
             var rocks = erosion.data.rockValues(true);
-            //   console.log('rocks:', rocks);
             expect(rocks).to.eql(
               [
-                  100, 110, 120, 130, 140,
-                  100, 108.75, 118.75, 128.75, 138.75,
-                  100, 107.5, 117.5, 127.5, 137.5,
-                  100, 106.25, 116.25, 126.25,
-                  136.25, 100, 105, 115, 125, 135
+                  100, 110, 120, 130, 140 ,
+                   100, 107.5, 137.5, 147.5, 157.5 ,
+                   100, 105, 135, 145, 155 ,
+                   100, 102.5, 132.5, 142.5, 152.5 ,
+                   100, 100, 130, 140, 150
               ]
+
             );
         });
 
         it('should change the seds', function () {
             var seds = erosion.data.sedValues(true);
-            console.log('seds:', seds);
-            expect(seds).to.eql([
-                0, 0, 0, 0, 0,
-                0, 1.25, 1.25, 1.25, 1.25,
-                0, 2.5, 2.5, 2.5, 2.5,
-                0, 3.75, 3.75, 3.75, 3.75,
-                0, 5, 5, 5, 5
-            ]);
-        });
+            expect(seds).to.eql(
+              [
+                  0, 0, 0, 0, 0,
+                  0, 2.5, 2.5, 2.5, 2.5,
+                  0, 5, 5, 5, 5,
+                  0, 7.5, 7.5, 7.5, 7.5,
+                  0, 10, 10, 10, 10
+              ]
+            );
+        })
     });
 
-    describe('#update', function(){
+    describe.only('#update', function(){
         beforeEach(function(){
             erosion.data.sed2IJset(5);
             erosion.data.rock2IJset(2);
@@ -184,8 +193,7 @@ describe.skip('ErosionPacked', function () {
         });
 
         it('should end up with six sed', function(){
-            expect(erosion.data.sed2IJ(i, j)).to.eql(6);
+            expect(erosion.data.sedIJ(1, 1)).to.eql(6);
         })
     });
-
 });

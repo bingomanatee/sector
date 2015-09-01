@@ -1,16 +1,18 @@
 (function (root) {
-      var lodash, MatrixPackedArray, sd;
+      var lodash, MatrixMultiArray;
 
       if (!(typeof exports === 'undefined')) {
           lodash = require('lodash');
-          MatrixPackedArray = require('./MatrixPackedArray').MatrixPackedArray;
+          MatrixMultiArray = require('./MatrixMultiArray').MatrixMultiArray;
       } else {
           lodash = root._;
-          MatrixPackedArray = root.MatrixPackedArray;
+          MatrixMultiArray = root.MatrixMultiArray;
       }
 
-      function ErosionPacked(params) {
-          if (!params) params = {};
+      function ErosionMulti(params) {
+          if (!params) {
+              params = {};
+          }
           this.size = params.size || 10;
           this.chanceOfRain = params.chanceOfRain || 0.25;
           this.amountOfRain = params.amountOfRain || 1;
@@ -22,21 +24,23 @@
           this.evaporationRate = params.evaporationRate || 0.5;
           this.randomValue = params.randomValue || Math.random.bind(Math);
 
-          this.data = new MatrixPackedArray({
-              rock2: MatrixPackedArray.TYPES.Float32,
-              rock: MatrixPackedArray.TYPES.Float32,
-              sed2: MatrixPackedArray.TYPES.Float32,
-              sed: MatrixPackedArray.TYPES.Float32,
-              water2: MatrixPackedArray.TYPES.Float32,
-              water: MatrixPackedArray.TYPES.Float32
-          }, this.size);
+          this.data = new MatrixMultiArray(
+            ['rock', 'water', 'sed', 'rock2', 'water2', 'sed2']
+            , this.size);
 
           var rock = params.rock || 100;
 
           this.data.rockIJset(rock);
       }
 
-      ErosionPacked.prototype = {
+      ErosionMulti.prototype = {
+
+          init: function(){
+            this.data.rockIJset(function(i, j, rock){
+                return Math.max(rock, 0);
+            });
+          },
+
           rain: function () {
               var self = this;
 
@@ -64,9 +68,16 @@
                   var water = this.waterIJ(i, j);
                   var sed = this.sedIJ(i, j);
                   var sedAmount = self.dissolveRatio * water;
+
+                  if (water < 0 || sed < 0){
+                      throw new Error('negative sums: ', water, sed);
+                  }
                   if (sed < sedAmount) {
                       var addSed = sedAmount - sed;
-                      var sed2 = this.sed2IJ(i, j);
+                      addSed = Math.min(addSed, this.rockIJ(i, j));
+                      if (addSed < 0){
+                          throw new Error('negative sums: ', addSed, this.rockIJ(i, j));
+                      }
                       this.rock2IJsubtract(i, j, addSed);
                       this.sed2IJadd(i, j, addSed);
                   }
@@ -144,16 +155,18 @@
           update: function () {
               this.data.each(function (i, j) {
                   var sed2 = this.sed2IJ(i, j);
-                  console.log('sed2 = ', sed2);
-                  this.sedIJadd(sed2);
+                  this.sedIJadd(i, j, sed2);
 
                   var water2 = this.water2IJ(i, j);
-                  this.waterIJadd(water2);
+                  this.waterIJadd(i, j, water2);
 
                   var rock2 = this.rock2IJ(i, j);
                   this.rockIJadd(i, j, rock2);
               });
 
+              this.data.rockIJset(function (i, j, r) {
+                  return Math.max(r, 0);
+              });
               this.data.sed2IJset(0);
               this.data.rock2IJset(0);
               this.data.water2IJset(0);
@@ -162,13 +175,16 @@
           evaporate: function () {
               var self = this;
               this.data.each(function (i, j) {
-                  var water = this.waterIJmultiply(i, j, self.evaporationRate);
                   var sed = this.sedIJ(i, j);
+                  var water = this.waterIJmultiply(i, j, self.evaporationRate);
                   var maxSed = self.saturationRatio * water;
                   if (sed > maxSed) {
                       var dry = sed - maxSed;
                       this.sedIJsubtract(i, j, dry);
                       this.rockIJadd(i, j, dry);
+                  }
+                  if (water < 0.0001) {
+                      this.waterIJ(i, j, 0);
                   }
               });
           },
@@ -176,6 +192,7 @@
           cycle: function (count) {
               var start = 0;
               while (++start <= count) {
+                  this.init();
                   this.rain();
                   this.dissolve();
                   this.flow();
@@ -183,10 +200,18 @@
                   this.evaporate();
                   console.log('cycle ', start);
               }
+
+              var totalRock = this.data.rockSum();
+              var totalWater = this.data.waterSum();
+              var totalSed = this.data.sedSum();
+              console.log('total rock: ', totalRock);
+              console.log('total water: ', totalWater);
+              console.log('total sediment:', totalSed);
+              console.log('total material: ', totalRock + totalSed);
           }
       };
 
-      root.ErosionPacked = ErosionPacked;
+      root.ErosionMulti = ErosionMulti;
 
   }
   (typeof exports === 'undefined' ? this : exports)
