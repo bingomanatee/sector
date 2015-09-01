@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Erosion</title>
+    <script src="../lib/jquery-1.11.2.js"></script>
+    <script src="../bower_components/lodash/lodash.min.js"></script>
+    <script src="../../../stddev.js"></script>
+    <script src="../../../MatrixPackedArray.js"></script>
+    <script src="../../../ErosionPacked.js"></script>
+    <script src="../../../lib/perlin.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<button type="button" class="doErode">Erode</button>
+<div>
+    <canvas id="terrainCanvas" width="1200" height="1200" style="width: 600px; height: 600px;">
+    </canvas>
+    <canvas id="terrainCanvas2" width="1200" height="1200" style="width: 600px; height: 600px; float: right">
+    </canvas>
+</div>
+<div>
+    Iterations: <span id="iter"></span>, Cycles: <span id="cycles"></span>
+</div>
+<div> <span id="imgDiv"></span> <span id="imgDiv2" style="float: right"></span></div>
+<script src="erosionPacked.js" defer="defer"></script>
+</body>
+</html>
